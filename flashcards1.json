@@ -1,0 +1,227 @@
+[
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Raja Ravi Varma is best known for which major contribution to Indian art?",
+    "answer": "He combined European academic realism with Indian mythological themes, popularizing oleograph prints.",
+    "artist": "Raja Ravi Varma",
+    "movement": "Academic Realism",
+    "medium": "Oil painting",
+    "hints": ["Oleographs", "Mythological realism"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Which Indian artist is associated with the Bengal School revival and nationalist art ideology?",
+    "answer": "Abanindranath Tagore",
+    "artist": "Abanindranath Tagore",
+    "movement": "Bengal School",
+    "hints": ["Swadeshi art", "Wash technique"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Who authored 'The Ideals of Indian Art' and shaped Indian art historiography?",
+    "answer": "Ananda Coomaraswamy",
+    "artist": "Ananda Coomaraswamy",
+    "movement": "Art Nationalism",
+    "hints": ["Art historian", "Traditional aesthetics"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Rabindranath Tagore’s artworks are stylistically closest to which modern art tendency?",
+    "answer": "Expressionism",
+    "artist": "Rabindranath Tagore",
+    "movement": "Modernism",
+    "medium": "Ink, watercolor",
+    "hints": ["Automatic drawing", "Psychological forms"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Who founded Kala Bhavana at Santiniketan?",
+    "answer": "Rabindranath Tagore",
+    "artist": "Rabindranath Tagore",
+    "location": "Santiniketan",
+    "hints": ["Visva-Bharati", "Alternative pedagogy"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Which British art historian supported Indian traditional art against Western academic realism?",
+    "answer": "E. B. Havell",
+    "artist": "E. B. Havell",
+    "movement": "Orientalist reform",
+    "hints": ["Calcutta Art School", "Indian aesthetics"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Nandalal Bose was a student of which artist?",
+    "answer": "Abanindranath Tagore",
+    "artist": "Nandalal Bose",
+    "movement": "Bengal School",
+    "hints": ["Santiniketan", "Haripura posters"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Which artist designed the Haripura Congress posters (1938)?",
+    "answer": "Nandalal Bose",
+    "artist": "Nandalal Bose",
+    "year": "1938",
+    "hints": ["Congress session", "Folk inspiration"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Jamini Roy’s style was heavily influenced by which tradition?",
+    "answer": "Bengal folk art (Kalighat paintings)",
+    "artist": "Jamini Roy",
+    "movement": "Folk Modernism",
+    "medium": "Tempera",
+    "hints": ["Flat colors", "Bold outlines"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Which artist is associated with Cubist influence in Indian modern art?",
+    "answer": "Ramkinkar Baij",
+    "artist": "Ramkinkar Baij",
+    "movement": "Modern Indian Sculpture",
+    "medium": "Cement, laterite",
+    "hints": ["Santhal Family", "Santiniketan"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Ramkinkar Baij is considered a pioneer of what in India?",
+    "answer": "Modern sculpture",
+    "artist": "Ramkinkar Baij",
+    "movement": "Modernism",
+    "hints": ["Outdoor sculpture", "Indigenous modernism"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Who among the following was part of the Progressive Artists’ Group?",
+    "answer": "M. F. Husain",
+    "artist": "Maqbool Fida Husain",
+    "movement": "Progressive Artists' Group",
+    "hints": ["1947 Bombay", "Modern Indian art"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Which artist is known for dynamic horses and narrative modernism?",
+    "answer": "M. F. Husain",
+    "artist": "Maqbool Fida Husain",
+    "medium": "Oil, acrylic",
+    "hints": ["Horses", "Bold lines"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Amrita Sher-Gil’s work reflects a synthesis of which traditions?",
+    "answer": "European modernism and Indian subjects",
+    "artist": "Amrita Sher-Gil",
+    "movement": "Early Modernism",
+    "hints": ["Post-Impressionism", "Indian women"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Which artist is often called India’s Frida Kahlo?",
+    "answer": "Amrita Sher-Gil",
+    "artist": "Amrita Sher-Gil",
+    "year": "1913–1941",
+    "hints": ["Self-portraits", "Short life"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Who is known for murals inspired by Ajanta paintings?",
+    "answer": "K. G. Subramanyan",
+    "artist": "K G Subramanyan",
+    "movement": "Narrative Modernism",
+    "hints": ["Baroda School", "Craft integration"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Which artist was instrumental in developing Baroda School of Art?",
+    "answer": "K. G. Subramanyan",
+    "artist": "K G Subramanyan",
+    "location": "Vadodara",
+    "hints": ["Pedagogue", "Plural modernism"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Who is associated with lyrical abstraction and nature-inspired forms?",
+    "answer": "V. S. Gaitonde",
+    "artist": "V S Gaitonde",
+    "movement": "Abstract Expressionism",
+    "hints": ["Zen influence", "Non-objective art"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Which artist is known for expressionist tribal figures?",
+    "answer": "J. Swaminathan",
+    "artist": "J Swaminathan",
+    "movement": "Neo-Tantric",
+    "hints": ["Triangle", "Bindu"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Which painter documented Indian tribes and folk culture extensively?",
+    "answer": "J. P. Gangooly",
+    "artist": "J P Ganguli",
+    "hints": ["Ethnographic art"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Who introduced wash technique influenced by Japanese painting?",
+    "answer": "Abanindranath Tagore",
+    "artist": "Abanindranath Tagore",
+    "medium": "Wash technique",
+    "hints": ["Japanese influence"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Which artist is known for miniature revival painting?",
+    "answer": "Kshitindranath Majumdar",
+    "artist": "Kshitindranath Majumdar",
+    "movement": "Bengal School",
+    "hints": ["Miniature aesthetics"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Who was a key female modern sculptor in India?",
+    "answer": "Devayani Krishna",
+    "artist": "Devayani Krishna",
+    "movement": "Modern Indian Sculpture",
+    "hints": ["Women sculptors"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Which artist explored urban alienation through distorted figures?",
+    "answer": "Manishi Dey",
+    "artist": "Manishi Dey",
+    "movement": "Expressionism",
+    "hints": ["Urban angst"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Who was a pioneer of Indian art criticism and archaeology?",
+    "answer": "V. S. Wakankar",
+    "artist": "V S Wakankar",
+    "hints": ["Bhimbetka discovery"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Who among these artists worked extensively in woodcut prints?",
+    "answer": "Shilpi Mukherjee",
+    "artist": "Shailoj Mukherjee",
+    "medium": "Woodcut",
+    "hints": ["Printmaking"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Which artist documented rural India through realism?",
+    "answer": "Babu Rao Painter",
+    "artist": "Baburao Painter",
+    "movement": "Realism",
+    "hints": ["Early cinema link"]
+  },
+  {
+    "chapterId": "NET_FA_Indian_Modern",
+    "question": "Who contributed significantly to Indian art education reforms?",
+    "answer": "Percy Brown",
+    "artist": "Percy Brown",
+    "hints": ["Colonial art education"]
+  }
+]

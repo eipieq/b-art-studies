@@ -1,0 +1,88 @@
+.markdown-content h3 {
+  color: #1f2937;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.markdown-content p {
+  line-height: 1.8;
+  margin-bottom: 1rem;
+  color: #374151;
+}
+
+.markdown-content ul {
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+  line-height: 2;
+}
+
+.markdown-content li {
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content hr {
+  margin: 2rem 0;
+  border-color: #e5e7eb;
+}
+
+.markdown-content strong {
+  color: #111827;
+  font-weight: 600;
+  font-size: 1.25rem;
+}
+
+.markdown-content .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5rem 0;
+  margin: 1rem 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.markdown-content .katex {
+  font-size: 1.1em;
+  color: #1f2937 !important;
+}
+
+.markdown-content .katex * {
+  color: #1f2937 !important;
+}
+
+.markdown-content .katex-html {
+  white-space: nowrap;
+}
+
+.markdown-content .katex-display > .katex {
+  white-space: normal;
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  .markdown-content .katex-display {
+    font-size: 0.9em;
+  }
+  
+  .markdown-content .katex {
+    font-size: 1em;
+  }
+}
+
+.markdown-content .katex-display .katex {
+  text-align: left;
+}
+
+.markdown-content .katex .frac-line {
+  border-bottom-color: #1f2937 !important;
+}
+
+.markdown-content .katex .mord,
+.markdown-content .katex .mbin,
+.markdown-content .katex .mrel,
+.markdown-content .katex .mopen,
+.markdown-content .katex .mclose,
+.markdown-content .katex .mpunct,
+.markdown-content .katex .minner {
+  color: #1f2937 !important;
+}
