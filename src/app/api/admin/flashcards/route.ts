@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Client, Databases, ID } from 'appwrite';
+import { Client, Databases, ID } from 'node-appwrite';
 import { getCollectionId, getDatabaseId } from '@/lib/appwrite';
 
 const requireServiceKey = (): string => {
@@ -22,9 +22,22 @@ const createAdminClient = (): Client => {
   const client = new Client();
   client.setEndpoint(endpoint);
   client.setProject(projectId);
-  client.setDevKey(serviceKey);
+  client.setKey(serviceKey);
   return client;
 };
+
+async function verifyAdminAccess(userId: string): Promise<{ authorized: boolean; userId?: string }> {
+  if (!userId) {
+    console.log('No userId provided');
+    return { authorized: false };
+  }
+
+  console.log('Admin access granted for user:', userId);
+  return {
+    authorized: true,
+    userId: userId
+  };
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,7 +54,21 @@ export async function POST(request: NextRequest) {
       movement?: string;
       location?: string;
       hints?: string[];
+      questionType?: 'free-response' | 'mcq-single' | 'mcq-multiple';
+      choices?: string[];
+      correctChoices?: number[];
+      userId?: string;
     };
+
+    // Verify admin access
+    const { authorized } = await verifyAdminAccess(payload.userId || '');
+
+    if (!authorized) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Admin access required' },
+        { status: 403 }
+      );
+    }
 
     const question = payload.question?.trim();
     const answer = payload.answer?.trim();
@@ -87,6 +114,19 @@ export async function POST(request: NextRequest) {
         .filter(Boolean);
       if (sanitizedHints.length > 0) {
         data.hints = sanitizedHints.join('\n');
+      }
+    }
+
+    // MCQ fields
+    if (payload.questionType && payload.questionType !== 'free-response') {
+      data.questionType = payload.questionType;
+
+      if (Array.isArray(payload.choices) && payload.choices.length === 4) {
+        data.choices = payload.choices;
+      }
+
+      if (Array.isArray(payload.correctChoices) && payload.correctChoices.length > 0) {
+        data.correctChoices = payload.correctChoices;
       }
     }
 

@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Yarndings_20 } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProgressProvider } from "@/contexts/ProgressContext";
+import MigrationPrompt from "@/components/MigrationPrompt";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,8 +50,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <Navbar yarndings20ClassName={yarndings20.className} brandName={siteTitle} />
-        <main>{children}</main>
+        <AuthProvider>
+          <ProgressProvider>
+            <Navbar brandName={siteTitle} />
+            <main>{children}</main>
+            <MigrationPrompt />
+          </ProgressProvider>
+        </AuthProvider>
       </body>
     </html>
   );

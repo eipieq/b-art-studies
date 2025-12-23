@@ -15,6 +15,9 @@ export interface Flashcard {
   hints?: string | string[];
   artist?: string;
   story?: string;
+  questionType?: 'free-response' | 'mcq-single' | 'mcq-multiple';
+  choices?: string[];
+  correctChoices?: number[];
 }
 
 export interface Chapter {

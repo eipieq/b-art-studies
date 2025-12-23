@@ -6,7 +6,8 @@ type AppwriteEnvKey =
   | 'NEXT_PUBLIC_APPWRITE_DATABASE_ID'
   | 'NEXT_PUBLIC_APPWRITE_COLLECTION_ID'
   | 'NEXT_PUBLIC_APPWRITE_CHAPTERS_COLLECTION_ID'
-  | 'NEXT_PUBLIC_APPWRITE_RESPONSES_COLLECTION_ID';
+  | 'NEXT_PUBLIC_APPWRITE_RESPONSES_COLLECTION_ID'
+  | 'NEXT_PUBLIC_APPWRITE_PROGRESS_COLLECTION_ID';
 
 const env = {
   endpoint: process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT,
@@ -15,6 +16,7 @@ const env = {
   collectionId: process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_ID,
   chaptersCollectionId: process.env.NEXT_PUBLIC_APPWRITE_CHAPTERS_COLLECTION_ID,
   responsesCollectionId: process.env.NEXT_PUBLIC_APPWRITE_RESPONSES_COLLECTION_ID,
+  progressCollectionId: process.env.NEXT_PUBLIC_APPWRITE_PROGRESS_COLLECTION_ID,
 } as const;
 
 const requireEnv = (value: string | undefined, key: AppwriteEnvKey): string => {
@@ -59,3 +61,5 @@ export const getChaptersCollectionId = (): string =>
   requireEnv(env.chaptersCollectionId, 'NEXT_PUBLIC_APPWRITE_CHAPTERS_COLLECTION_ID');
 export const getResponsesCollectionId = (): string =>
   requireEnv(env.responsesCollectionId, 'NEXT_PUBLIC_APPWRITE_RESPONSES_COLLECTION_ID');
+export const getProgressCollectionId = (): string =>
+  requireEnv(env.progressCollectionId, 'NEXT_PUBLIC_APPWRITE_PROGRESS_COLLECTION_ID');

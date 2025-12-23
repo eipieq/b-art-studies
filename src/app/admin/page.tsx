@@ -8,6 +8,7 @@ import {
   getChaptersCollectionId,
 } from '@/lib/appwrite';
 import { Chapter } from '@/types/flashcards';
+import { useAuth } from '@/contexts/AuthContext';
 
 const initialFlashcardState = {
   question: '',
@@ -22,9 +23,16 @@ const initialFlashcardState = {
   movement: '',
   location: '',
   hints: '',
+  questionType: 'free-response' as 'free-response' | 'mcq-single' | 'mcq-multiple',
+  choice1: '',
+  choice2: '',
+  choice3: '',
+  choice4: '',
+  correctChoiceIndices: [] as number[],
 };
 
 export default function AdminPage() {
+  const { user } = useAuth();
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [chapterTitle, setChapterTitle] = useState('');
   const [flashcardForm, setFlashcardForm] = useState(initialFlashcardState);
@@ -74,10 +82,16 @@ export default function AdminPage() {
     setChapterStatus(null);
 
     try {
+      if (!user?.$id) {
+        throw new Error('You must be logged in to create chapters');
+      }
+
       const response = await fetch('/api/admin/chapters', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: trimmedTitle }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title: trimmedTitle, userId: user.$id }),
       });
 
       if (!response.ok) {
@@ -106,6 +120,22 @@ export default function AdminPage() {
     }));
   };
 
+  const handleCorrectChoiceToggle = (choiceIndex: number) => {
+    if (flashcardForm.questionType === 'mcq-single') {
+      setFlashcardForm((prev) => ({
+        ...prev,
+        correctChoiceIndices: [choiceIndex],
+      }));
+    } else if (flashcardForm.questionType === 'mcq-multiple') {
+      setFlashcardForm((prev) => ({
+        ...prev,
+        correctChoiceIndices: prev.correctChoiceIndices.includes(choiceIndex)
+          ? prev.correctChoiceIndices.filter((idx) => idx !== choiceIndex)
+          : [...prev.correctChoiceIndices, choiceIndex],
+      }));
+    }
+  };
+
   const handleFlashcardSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedQuestion = flashcardForm.question.trim();
@@ -113,6 +143,26 @@ export default function AdminPage() {
     if (!trimmedQuestion || !trimmedAnswer || !flashcardForm.chapterId) {
       setFlashcardStatus('Question, answer, and chapter are required.');
       return;
+    }
+
+    // MCQ validation
+    if (flashcardForm.questionType !== 'free-response') {
+      const choices = [
+        flashcardForm.choice1.trim(),
+        flashcardForm.choice2.trim(),
+        flashcardForm.choice3.trim(),
+        flashcardForm.choice4.trim(),
+      ];
+
+      if (choices.some((c) => !c)) {
+        setFlashcardStatus('MCQ requires all 4 choices to be filled.');
+        return;
+      }
+
+      if (flashcardForm.correctChoiceIndices.length === 0) {
+        setFlashcardStatus('MCQ requires at least one correct answer.');
+        return;
+      }
     }
 
     setIsSavingFlashcard(true);
@@ -123,24 +173,44 @@ export default function AdminPage() {
       .map((hint) => hint.trim())
       .filter(Boolean);
 
+    const payload: Record<string, unknown> = {
+      question: trimmedQuestion,
+      answer: trimmedAnswer,
+      chapterId: flashcardForm.chapterId,
+      artworkTitle: flashcardForm.artworkTitle.trim() || undefined,
+      artist: flashcardForm.artist.trim() || undefined,
+      story: flashcardForm.story.trim() || undefined,
+      imageUrl: flashcardForm.imageUrl.trim() || undefined,
+      year: flashcardForm.year.trim() || undefined,
+      medium: flashcardForm.medium.trim() || undefined,
+      movement: flashcardForm.movement.trim() || undefined,
+      location: flashcardForm.location.trim() || undefined,
+      hints: hintsArray.length > 0 ? hintsArray.join('\n') : undefined,
+      questionType: flashcardForm.questionType,
+    };
+
+    // Add MCQ-specific fields
+    if (flashcardForm.questionType !== 'free-response') {
+      payload.choices = [
+        flashcardForm.choice1.trim(),
+        flashcardForm.choice2.trim(),
+        flashcardForm.choice3.trim(),
+        flashcardForm.choice4.trim(),
+      ];
+      payload.correctChoices = flashcardForm.correctChoiceIndices;
+    }
+
     try {
+      if (!user?.$id) {
+        throw new Error('You must be logged in to create flashcards');
+      }
+
       const response = await fetch('/api/admin/flashcards', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          question: trimmedQuestion,
-          answer: trimmedAnswer,
-          chapterId: flashcardForm.chapterId,
-          artworkTitle: flashcardForm.artworkTitle.trim() || undefined,
-          artist: flashcardForm.artist.trim() || undefined,
-          story: flashcardForm.story.trim() || undefined,
-          imageUrl: flashcardForm.imageUrl.trim() || undefined,
-          year: flashcardForm.year.trim() || undefined,
-          medium: flashcardForm.medium.trim() || undefined,
-          movement: flashcardForm.movement.trim() || undefined,
-          location: flashcardForm.location.trim() || undefined,
-          hints: hintsArray.length > 0 ? hintsArray.join('\n') : undefined,
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ...payload, userId: user.$id }),
       });
 
       if (!response.ok) {
@@ -151,6 +221,12 @@ export default function AdminPage() {
       setFlashcardForm((prev) => ({
         ...initialFlashcardState,
         chapterId: prev.chapterId,
+        questionType: 'free-response',
+        choice1: '',
+        choice2: '',
+        choice3: '',
+        choice4: '',
+        correctChoiceIndices: [],
       }));
       setFlashcardStatus('Flashcard created successfully.');
     } catch (error) {
@@ -175,17 +251,32 @@ export default function AdminPage() {
 
     try {
       const parsed = JSON.parse(importPayload);
-      const flashcards =
-        Array.isArray(parsed) && parsed.length > 0 ? parsed : [];
+
+      // Support both formats:
+      // 1. { "flashcards": [...] } (recommended)
+      // 2. [...] (direct array)
+      let flashcards: unknown[] = [];
+
+      if (Array.isArray(parsed)) {
+        flashcards = parsed;
+      } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.flashcards)) {
+        flashcards = parsed.flashcards;
+      }
 
       if (flashcards.length === 0) {
-        throw new Error('Provide a JSON array of flashcards.');
+        throw new Error('Provide a JSON array of flashcards or an object with a "flashcards" array property.');
+      }
+
+      if (!user?.$id) {
+        throw new Error('You must be logged in to import flashcards');
       }
 
       const response = await fetch('/api/admin/import', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ flashcards }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ flashcards, userId: user.$id }),
       });
 
       if (!response.ok) {
@@ -307,6 +398,72 @@ export default function AdminPage() {
                 placeholder="Provide a clear explanation"
               />
             </label>
+            <label className="block text-sm font-medium text-gray-700">
+              Question Type
+              <select
+                name="questionType"
+                value={flashcardForm.questionType}
+                onChange={(e) => {
+                  setFlashcardForm((prev) => ({
+                    ...prev,
+                    questionType: e.target.value as typeof prev.questionType,
+                    choice1: '',
+                    choice2: '',
+                    choice3: '',
+                    choice4: '',
+                    correctChoiceIndices: [],
+                  }));
+                }}
+                disabled={isSavingFlashcard}
+                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="free-response">Free Response</option>
+                <option value="mcq-single">Multiple Choice (Single Answer)</option>
+                <option value="mcq-multiple">Multiple Choice (Select All)</option>
+              </select>
+            </label>
+            {(flashcardForm.questionType === 'mcq-single' ||
+              flashcardForm.questionType === 'mcq-multiple') && (
+              <div className="space-y-3 rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+                <p className="text-sm font-semibold text-indigo-900">
+                  {flashcardForm.questionType === 'mcq-multiple'
+                    ? 'Answer Choices (Select all correct answers):'
+                    : 'Answer Choices (Select one correct answer):'}
+                </p>
+                {[1, 2, 3, 4].map((num) => {
+                  const choiceKey = `choice${num}` as 'choice1' | 'choice2' | 'choice3' | 'choice4';
+                  const choiceIndex = num - 1;
+                  const isCorrect = flashcardForm.correctChoiceIndices.includes(choiceIndex);
+
+                  return (
+                    <div key={num} className="flex items-start gap-2">
+                      <input
+                        type={flashcardForm.questionType === 'mcq-single' ? 'radio' : 'checkbox'}
+                        name="correct-choice"
+                        checked={isCorrect}
+                        onChange={() => handleCorrectChoiceToggle(choiceIndex)}
+                        disabled={isSavingFlashcard}
+                        className="mt-3"
+                        title="Mark as correct answer"
+                      />
+                      <div className="flex-1">
+                        <label className="text-xs text-gray-600 mb-1 block">
+                          Choice {num}
+                        </label>
+                        <input
+                          name={choiceKey}
+                          value={flashcardForm[choiceKey]}
+                          onChange={handleFlashcardChange}
+                          disabled={isSavingFlashcard}
+                          placeholder={`Enter choice ${num}`}
+                          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             <div className="grid gap-3 md:grid-cols-2">
               <input
                 name="artworkTitle"

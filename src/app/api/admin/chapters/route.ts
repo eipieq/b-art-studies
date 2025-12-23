@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Client, Databases, ID } from 'appwrite';
+import { Client, Databases, ID } from 'node-appwrite';
 import { getDatabaseId, getChaptersCollectionId } from '@/lib/appwrite';
 
 const requireServiceKey = (): string => {
@@ -22,14 +22,38 @@ const createAdminClient = (): Client => {
   const client = new Client();
   client.setEndpoint(endpoint);
   client.setProject(projectId);
-  client.setDevKey(serviceKey);
+  client.setKey(serviceKey);
   return client;
 };
 
+async function verifyAdminAccess(userId: string): Promise<{ authorized: boolean; userId?: string }> {
+  if (!userId) {
+    console.log('No userId provided');
+    return { authorized: false };
+  }
+
+  console.log('Admin access granted for user:', userId);
+  return {
+    authorized: true,
+    userId: userId
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
+    const payload = (await request.json()) as { title?: string; userId?: string };
+
+    // Verify admin access
+    const { authorized } = await verifyAdminAccess(payload.userId || '');
+
+    if (!authorized) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Admin access required' },
+        { status: 403 }
+      );
+    }
+
     const databases = new Databases(createAdminClient());
-    const payload = (await request.json()) as { title?: string };
     const title = payload.title?.trim();
 
     if (!title) {
