@@ -35,7 +35,7 @@ export default function Navbar({
                 href="/flashcards"
                 className="text-sm text-gray-700 hover:text-indigo-600 font-medium transition"
               >
-                Browse Cards
+                View All Cards
               </Link>
 
               {syncing && (

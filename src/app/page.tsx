@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, useMemo, FormEvent } from 'react';
 import {
   getDatabases,
   getDatabaseId,
@@ -132,12 +132,15 @@ export default function Home() {
   const [showChoices, setShowChoices] = useState(false);
   const [mcqSubmitted, setMcqSubmitted] = useState(false);
   const [mcqCorrect, setMcqCorrect] = useState<boolean | null>(null);
+  const [mcqPartialScore, setMcqPartialScore] = useState(0);
+  const [flashcardSearchQuery, setFlashcardSearchQuery] = useState('');
+  const [showQuestionBrowser, setShowQuestionBrowser] = useState(false);
 
   useEffect(() => {
     fetchChapters();
   }, []);
 
-  const resetInteractionState = () => {
+  const resetInteractionState = (flashcard: Flashcard | null = null) => {
     setShowAnswer(false);
     setUserAnswer('');
     setGradeError(null);
@@ -145,9 +148,14 @@ export default function Home() {
     setScore(null);
     setFeedback('');
     setSelectedChoiceIndices([]);
-    setShowChoices(false);
+    setShowChoices(
+      !!flashcard &&
+        (flashcard.questionType === 'mcq-single' ||
+          flashcard.questionType === 'mcq-multiple')
+    );
     setMcqSubmitted(false);
     setMcqCorrect(null);
+    setMcqPartialScore(0);
   };
 
   const fetchChapters = async () => {
@@ -179,7 +187,7 @@ export default function Home() {
       setCurrentChapterFlashcards(cachedFlashcards);
       setCurrentFlashcardIndex(cachedFlashcards.length > 0 ? 0 : null);
       setCurrentFlashcard(cachedFlashcards[0] ?? null);
-      resetInteractionState();
+      resetInteractionState(cachedFlashcards[0] ?? null);
       return;
     }
 
@@ -187,7 +195,10 @@ export default function Home() {
       const response = await getDatabases().listDocuments(
         getDatabaseId(),
         getCollectionId(),
-        [Query.equal('chapterId', chapterId)]
+        [
+          Query.equal('chapterId', chapterId),
+          Query.limit(1000), // ensure we fetch beyond the default page size
+        ]
       );
 
       const documents = (response.documents ?? []) as unknown as Flashcard[];
@@ -211,20 +222,22 @@ export default function Home() {
       setCurrentChapterFlashcards(normalized);
 
       if (normalized.length > 0) {
-        setCurrentFlashcard(normalized[0]);
+        const firstCard = normalized[0];
+        setCurrentFlashcard(firstCard);
         setCurrentFlashcardIndex(0);
+        resetInteractionState(firstCard);
       } else {
         setCurrentFlashcard(null);
         setCurrentFlashcardIndex(null);
         setCurrentChapterFlashcards([]);
+        resetInteractionState(null);
       }
-      resetInteractionState();
     } catch (error) {
       console.error('Failed to load flashcards for chapter', error);
       setCurrentFlashcard(null);
       setCurrentFlashcardIndex(null);
       setCurrentChapterFlashcards([]);
-      resetInteractionState();
+      resetInteractionState(null);
       setAppwriteError(
         error instanceof Error
           ? error.message
@@ -232,6 +245,30 @@ export default function Home() {
       );
     }
   };
+
+  const handleFlashcardPick = (flashcardId: string) => {
+    const index = currentChapterFlashcards.findIndex((card) => card.$id === flashcardId);
+    if (index === -1) {
+      return;
+    }
+
+    const selectedCard = currentChapterFlashcards[index];
+    resetInteractionState(selectedCard);
+    setCurrentFlashcard(selectedCard);
+    setCurrentFlashcardIndex(index);
+  };
+
+  const filteredChapterFlashcards = useMemo(() => {
+    const query = flashcardSearchQuery.trim().toLowerCase();
+    if (!query) {
+      return currentChapterFlashcards;
+    }
+
+    return currentChapterFlashcards.filter((card) =>
+      card.question.toLowerCase().includes(query) ||
+      card.answer.toLowerCase().includes(query)
+    );
+  }, [currentChapterFlashcards, flashcardSearchQuery]);
 
   const handleFlashcardNavigation = (direction: 1 | -1) => {
     if (!selectedChapterId) {
@@ -250,8 +287,9 @@ export default function Home() {
       return;
     }
 
-    resetInteractionState();
-    setCurrentFlashcard(flashcards[nextIndex]);
+    const nextFlashcard = flashcards[nextIndex];
+    resetInteractionState(nextFlashcard);
+    setCurrentFlashcard(nextFlashcard);
     setCurrentFlashcardIndex(nextIndex);
   };
 
@@ -344,7 +382,7 @@ export default function Home() {
   };
 
   const handleRetry = () => {
-    resetInteractionState();
+    resetInteractionState(currentFlashcard ?? null);
   };
 
   const handleChoiceToggle = (choiceIndex: number) => {
@@ -369,12 +407,27 @@ export default function Home() {
     const selectedSorted = [...selectedChoiceIndices].sort((a, b) => a - b);
     const correctSorted = [...currentFlashcard.correctChoices].sort((a, b) => a - b);
 
-    const isCorrect =
+    const isPerfectMatch =
       selectedSorted.length === correctSorted.length &&
       selectedSorted.every((val, idx) => val === correctSorted[idx]);
 
+    const correctChoiceSet = new Set(currentFlashcard.correctChoices);
+    const correctSelectionCount = selectedChoiceIndices.filter((idx) =>
+      correctChoiceSet.has(idx)
+    ).length;
+    const incorrectSelectionCount = selectedChoiceIndices.filter(
+      (idx) => !correctChoiceSet.has(idx)
+    ).length;
+
+    let partialScore = 0;
+    if (correctChoiceSet.size > 0) {
+      partialScore = (correctSelectionCount - incorrectSelectionCount) / correctChoiceSet.size;
+      partialScore = Math.max(0, Math.min(1, partialScore));
+    }
+
     setMcqSubmitted(true);
-    setMcqCorrect(isCorrect);
+    setMcqCorrect(isPerfectMatch);
+    setMcqPartialScore(partialScore);
     setShowAnswer(true);
   };
 
@@ -390,6 +443,26 @@ export default function Home() {
     (field): field is MetadataField =>
       typeof field.value === 'string' && field.value.trim().length > 0
   );
+  const isCurrentFlashcardMcq =
+    currentFlashcard?.questionType === 'mcq-single' ||
+    currentFlashcard?.questionType === 'mcq-multiple';
+  const currentFlashcardHasChoices =
+    (currentFlashcard?.choices?.length ?? 0) > 0;
+  const mcqResultLabel = mcqCorrect
+    ? 'Correct'
+    : mcqPartialScore > 0
+    ? 'Partially Correct'
+    : 'Incorrect';
+  const mcqResultClasses = mcqCorrect
+    ? 'border-emerald-500 bg-emerald-100 text-emerald-900 hover:bg-emerald-200'
+    : mcqPartialScore > 0
+    ? 'border-amber-500 bg-amber-100 text-amber-900 hover:bg-amber-200'
+    : 'border-rose-500 bg-rose-100 text-rose-900 hover:bg-rose-200';
+  const mcqResultDetail = mcqCorrect
+    ? 'Nice work—keep it up!'
+    : mcqPartialScore > 0
+    ? `Partial credit: ${Math.round(mcqPartialScore * 100)}%`
+    : 'Review the hint and try again.';
   const hasPrevious =
     currentChapterFlashcards.length > 0 &&
     currentFlashcardIndex !== null &&
@@ -450,124 +523,140 @@ export default function Home() {
                 {currentFlashcard.question}
               </h2>
 
-              {currentFlashcard.questionType &&
-              (currentFlashcard.questionType === 'mcq-single' ||
-                currentFlashcard.questionType === 'mcq-multiple') ? (
+              {isCurrentFlashcardMcq ? (
                 <div className="space-y-4">
-                  {!showChoices && !mcqSubmitted && (
+                  <div className="flex flex-wrap gap-3">
                     <button
                       type="button"
-                      onClick={() => setShowChoices(true)}
-                      className="px-4 py-2 text-gray-800 rounded-lg border border-gray-200 hover:bg-gray-100 transition"
+                      onClick={() => setShowChoices((prev) => !prev)}
+                      disabled={!currentFlashcardHasChoices}
+                      className="px-4 py-2 text-gray-800 rounded-lg border border-gray-200 hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Show Choices
-                    </button>
-                  )}
-
-                  {showChoices && currentFlashcard.choices && (
-                    <div className="space-y-3">
-                      <p className="text-sm font-medium text-gray-600 mb-3">
-                        {currentFlashcard.questionType === 'mcq-multiple'
-                          ? 'Select all that apply:'
-                          : 'Select one:'}
-                      </p>
-                      {currentFlashcard.choices.map((choice, idx) => {
-                        const isSelected = selectedChoiceIndices.includes(idx);
-                        const isCorrect = currentFlashcard.correctChoices?.includes(idx);
-                        const showFeedback = mcqSubmitted;
-
-                        let borderClass = 'border-gray-200';
-                        let bgClass = 'bg-white';
-
-                        if (showFeedback) {
-                          if (isCorrect) {
-                            borderClass = 'border-green-500';
-                            bgClass = 'bg-green-50';
-                          } else if (isSelected && !isCorrect) {
-                            borderClass = 'border-red-500';
-                            bgClass = 'bg-red-50';
-                          }
-                        }
-
-                        return (
-                          <label
-                            key={idx}
-                            className={`flex items-start gap-3 p-4 rounded-lg border ${borderClass} ${bgClass} cursor-pointer transition ${
-                              mcqSubmitted ? 'cursor-default' : 'hover:bg-gray-50'
-                            }`}
-                          >
-                            <input
-                              type={
-                                currentFlashcard.questionType === 'mcq-single'
-                                  ? 'radio'
-                                  : 'checkbox'
-                              }
-                              name="mcq-choice"
-                              checked={isSelected}
-                              onChange={() => handleChoiceToggle(idx)}
-                              disabled={mcqSubmitted}
-                              className="mt-1"
-                            />
-                            <span className="text-sm text-gray-800 flex-1">
-                              {choice}
-                            </span>
-                            {showFeedback && isCorrect && (
-                              <span className="text-green-600 text-xs font-semibold">
-                                ✓ Correct
-                              </span>
-                            )}
-                          </label>
-                        );
-                      })}
-
-                      {!mcqSubmitted && (
-                        <button
-                          type="button"
-                          onClick={handleMcqSubmit}
-                          disabled={selectedChoiceIndices.length === 0}
-                          className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Submit Answer
-                        </button>
-                      )}
-
-                      {mcqSubmitted && mcqCorrect !== null && (
-                        <div
-                          className={`p-4 rounded-lg ${
-                            mcqCorrect
-                              ? 'bg-green-100 text-green-800 border border-green-200'
-                              : 'bg-red-100 text-red-800 border border-red-200'
-                          }`}
-                        >
-                          <p className="font-semibold">
-                            {mcqCorrect ? '✓ Correct!' : '✗ Incorrect'}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="flex flex-wrap gap-3 mt-4">
-                    <button
-                      type="button"
-                      onClick={() => setShowAnswer((prev) => !prev)}
-                      className="px-3 py-1 text-gray-800 rounded-lg border border-gray-200 hover:bg-gray-900 hover:text-white transition"
-                    >
-                      {showAnswer ? 'Hide Answer' : 'View Answer'}
+                      {showChoices ? 'Hide Choices' : 'Show Choices'}
                     </button>
                   </div>
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowAnswer((previous) => !previous)}
-                    className="px-3 py-1 text-gray-800 rounded-lg border border-gray-200 hover:bg-gray-900 hover:text-white transition"
-                  >
-                    {showAnswer ? 'Hide Answer' : 'View Answer'}
-                  </button>
-                </div>
-              )}
+
+                  {currentFlashcardHasChoices ? (
+                    showChoices && (
+                      <div className="space-y-3">
+                        <p className="text-sm font-medium text-gray-600 mb-3">
+                          {currentFlashcard.questionType === 'mcq-multiple'
+                            ? 'Select all that apply:'
+                            : 'Select one:'}
+                        </p>
+                        {currentFlashcard.choices?.map((choice, idx) => {
+                          const isSelected = selectedChoiceIndices.includes(idx);
+                          const isCorrect = currentFlashcard.correctChoices?.includes(idx);
+                          const showFeedback = mcqSubmitted;
+
+                          let borderClass = 'border-gray-200';
+                          let bgClass = 'bg-white';
+
+                          if (showFeedback) {
+                            if (isCorrect) {
+                              borderClass = 'border-green-500';
+                              bgClass = 'bg-green-50';
+                            } else if (isSelected && !isCorrect) {
+                              borderClass = 'border-red-500';
+                              bgClass = 'bg-red-50';
+                            }
+                          }
+
+                          return (
+                            <label
+                              key={idx}
+                              className={`flex items-start gap-3 p-4 rounded-lg border ${borderClass} ${bgClass} cursor-pointer transition ${
+                                mcqSubmitted ? 'cursor-default' : 'hover:bg-gray-50'
+                              }`}
+                            >
+                              <input
+                                type={
+                                  currentFlashcard.questionType === 'mcq-single'
+                                    ? 'radio'
+                                    : 'checkbox'
+                                }
+                                name="mcq-choice"
+                                checked={isSelected}
+                                onChange={() => handleChoiceToggle(idx)}
+                                disabled={mcqSubmitted}
+                                className="mt-1"
+                              />
+                              <span className="text-sm text-gray-800 flex-1">
+                                {choice}
+                              </span>
+                              {showFeedback && isCorrect && (
+                                <span className="text-green-600 text-xs font-semibold">
+                                  ✓ Correct
+                                </span>
+                              )}
+                            </label>
+                          );
+                        })}
+
+                        {!mcqSubmitted && (
+                          <button
+                            type="button"
+                            onClick={handleMcqSubmit}
+                            disabled={selectedChoiceIndices.length === 0}
+                            className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Submit Answer
+                          </button>
+                        )}
+
+                        {mcqSubmitted && mcqCorrect !== null && (
+                          <div className="space-y-1">
+                            <div
+                              className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1 text-sm font-semibold transition ${mcqResultClasses}`}
+                              role="status"
+                              aria-live="polite"
+                            >
+                              <span
+                                className={`text-base leading-none ${
+                                  mcqCorrect
+                                    ? 'text-emerald-700'
+                                    : mcqPartialScore > 0
+                                    ? 'text-amber-700'
+                                    : 'text-rose-700'
+                                }`}
+                                aria-hidden="true"
+                              >
+                                {mcqCorrect ? '✓' : '✗'}
+                              </span>
+                              <span>{mcqResultLabel}</span>
+                            </div>
+                            <p className="text-xs text-gray-600">{mcqResultDetail}</p>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      No answer choices have been configured for this MCQ yet.
+                    </p>
+                  )}
+
+              <div className="flex flex-wrap gap-3 mt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowAnswer((prev) => !prev)}
+                  className="px-3 py-1 text-gray-800 rounded-lg border border-gray-200 hover:bg-gray-900 hover:text-white transition"
+                >
+                  {showAnswer ? 'Hide Answer' : 'View Answer'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => setShowAnswer((previous) => !previous)}
+                className="px-3 py-1 text-gray-800 rounded-lg border border-gray-200 hover:bg-gray-900 hover:text-white transition"
+              >
+                {showAnswer ? 'Hide Answer' : 'View Answer'}
+              </button>
+            </div>
+          )}
 
               {score !== null && (
                 <div className="mt-6">
@@ -652,7 +741,14 @@ export default function Home() {
               )}
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowQuestionBrowser((prev) => !prev)}
+                className="px-3 py-1 text-gray-800 rounded-full border border-gray-200 hover:bg-gray-100 transition"
+              >
+                {showQuestionBrowser ? 'Hide question list' : 'Browse questions'}
+              </button>
               <button
                 type="button"
                 onClick={() => handleFlashcardNavigation(-1)}
@@ -666,13 +762,64 @@ export default function Home() {
                 onClick={() => handleFlashcardNavigation(1)}
                 disabled={!hasNext}
                 className="px-3 py-1 text-gray-800 rounded-full border border-gray-200 hover:bg-gray-100 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </div>
+                >
+                  Next
+                </button>
+              </div>
             </div>
           ) : (
             <p>Select a chapter to start.</p>
+          )}
+          {showQuestionBrowser && (
+            <div className="fixed bottom-5 right-5 z-40 w-full max-w-xs rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-lg shadow-gray-900/20 backdrop-blur-sm sm:max-w-sm">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-gray-700">
+                  Questions ({filteredChapterFlashcards.length}/{currentChapterFlashcards.length})
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowQuestionBrowser(false)}
+                  className="text-xs text-gray-400 hover:text-gray-600"
+                >
+                  Close
+                </button>
+              </div>
+              <input
+                type="search"
+                value={flashcardSearchQuery}
+                onChange={(event) => setFlashcardSearchQuery(event.target.value)}
+                placeholder="Filter by question or answer..."
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <div className="mt-3 max-h-[60vh] space-y-2 overflow-y-auto pr-1">
+                {filteredChapterFlashcards.length === 0 ? (
+                  <p className="text-xs text-gray-500">
+                    No questions match that filter yet.
+                  </p>
+                ) : (
+                  filteredChapterFlashcards.map((card) => {
+                    const isActive = currentFlashcard?.$id === card.$id;
+                    return (
+                      <button
+                        key={card.$id}
+                        type="button"
+                        onClick={() => handleFlashcardPick(card.$id)}
+                        className={`w-full rounded-lg border px-3 py-2 text-left text-xs transition focus:outline-none ${
+                          isActive
+                            ? 'border-indigo-500 bg-indigo-50 text-indigo-900'
+                            : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-300'
+                        }`}
+                      >
+                        <p className="font-semibold">{card.question}</p>
+                        <p className="text-[11px] text-gray-500">
+                          {card.questionType || 'Free response'}
+                        </p>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </div>
           )}
         </div>
       </main>
